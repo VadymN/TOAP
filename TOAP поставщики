@@ -1,0 +1,110 @@
+#Elit
+
+let
+    Источник = Excel.Workbook(File.Contents("C:\Users\v.nevmerzhytskyi\Downloads\KV20001877 Stock 30-04-18.xlsx"), null, true),
+    Items_Sheet = Источник{[Item="Items",Kind="Sheet"]}[Data],
+    #"Измененный тип" = Table.TransformColumnTypes(Items_Sheet,{{"Column1", type text}, {"Column2", type text}, {"Column3", type text}, {"Column4", type text}, {"Column5", type text}, {"Column6", type text}, {"Column7", type text}, {"Column8", type text}, {"Column9", type text}, {"Column10", type text}, {"Column11", type text}, {"Column12", type any}}),
+    #"Повышенные заголовки" = Table.PromoteHeaders(#"Измененный тип", [PromoteAllScalars=true]),
+    #"Измененный тип1" = Table.TransformColumnTypes(#"Повышенные заголовки",{{"Активный код ELIT", type text}, {"Каталожный номер", type text}, {"Бренд", type text}, {"Описание товара", type text}, {"Описание  eCat", type text}, {"Цена клиента", type text}, {"НАЛИЧИЕ", type text}, {"Column8", type text}, {"Column9", type text}, {"Column10", type text}, {"Column11", type text}, {"Column12", type any}}),
+    #"Переименованные столбцы" = Table.RenameColumns(#"Измененный тип1",{{"НАЛИЧИЕ", "Ваш филиал, Київ 2"}, {"Column8", "Филиал Київ 3"}, {"Column9", "Филиал Київ 4"}, {"Column10", "Центральный склад"}, {"Column11", "Другие склады, поставка 1-2 дня"}}),
+    #"Удаленные столбцы" = Table.RemoveColumns(#"Переименованные столбцы",{"Column12"}),
+    #"Удаленные верхние строки" = Table.Skip(#"Удаленные столбцы",1),
+    #"Переименованные столбцы1" = Table.RenameColumns(#"Удаленные верхние строки",{{"Каталожный номер", "Артикул"}, {"Цена клиента", "Цена"}}),
+    #"Удаленные столбцы1" = Table.RemoveColumns(#"Переименованные столбцы1",{"Описание  eCat"}),
+    #"Переименованные столбцы2" = Table.RenameColumns(#"Удаленные столбцы1",{{"Описание товара", "Название"}}),
+    #"Удаленные столбцы2" = Table.RemoveColumns(#"Переименованные столбцы2",{"Активный код ELIT"}),
+    #"Переупорядоченные столбцы" = Table.ReorderColumns(#"Удаленные столбцы2",{"Бренд", "Артикул", "Цена", "Название", "Ваш филиал, Київ 2", "Филиал Київ 3", "Филиал Київ 4", "Центральный склад", "Другие склады, поставка 1-2 дня"}),
+    #"Измененный тип2" = Table.TransformColumnTypes(#"Переупорядоченные столбцы",{{"Ваш филиал, Київ 2", Int64.Type}, {"Филиал Київ 3", Int64.Type}, {"Филиал Київ 4", Int64.Type}, {"Центральный склад", Int64.Type}, {"Другие склады, поставка 1-2 дня", Int64.Type}}),
+    #"Добавлен пользовательский объект" = Table.AddColumn(#"Измененный тип2", "Пользовательская", each [#"Ваш филиал, Київ 2"]+[Филиал Київ 3]+[Филиал Київ 4]+[Центральный склад]+[#"Другие склады, поставка 1-2 дня"]),
+    #"Переименованные столбцы3" = Table.RenameColumns(#"Добавлен пользовательский объект",{{"Пользовательская", "Кол-во"}}),
+    #"Условный столбец добавлен" = Table.AddColumn(#"Переименованные столбцы3", "Пользовательская", each if [#"Ваш филиал, Київ 2"] >= 1 then 1 else if [Филиал Київ 3] >= 1 then 1 else if [Филиал Київ 4] >= 1 then 1 else if [Центральный склад] >= 1 then 2 else if [#"Другие склады, поставка 1-2 дня"] >= 1 then 3 else null),
+    #"Переименованные столбцы4" = Table.RenameColumns(#"Условный столбец добавлен",{{"Пользовательская", "Срок поставки"}}),
+    #"Удаленные столбцы3" = Table.RemoveColumns(#"Переименованные столбцы4",{"Ваш филиал, Київ 2", "Филиал Київ 3", "Филиал Київ 4", "Центральный склад", "Другие склады, поставка 1-2 дня"}),
+    #"Переупорядоченные столбцы1" = Table.ReorderColumns(#"Удаленные столбцы3",{"Бренд", "Артикул", "Цена", "Кол-во", "Срок поставки", "Название"}),
+    #"Строки с примененным фильтром" = Table.SelectRows(#"Переупорядоченные столбцы1", each [#"Кол-во"] >= 2)
+in
+    #"Строки с примененным фильтром"
+   
+#KiaParts
+    
+    let
+    Источник = Csv.Document(File.Contents("C:\Users\v.nevmerzhytskyi\Downloads\kiaparts_30.04.2018_ZYjOq.csv"),[Delimiter=",", Columns=8, Encoding=65001, QuoteStyle=QuoteStyle.None]),
+    #"Измененный тип" = Table.TransformColumnTypes(Источник,{{"Column1", type text}, {"Column2", type text}, {"Column3", type text}, {"Column4", type text}, {"Column5", type text}, {"Column6", type text}, {"Column7", type text}, {"Column8", type text}}),
+    #"Удаленные столбцы" = Table.RemoveColumns(#"Измененный тип",{"Column4"}),
+    #"Переименованные столбцы" = Table.RenameColumns(#"Удаленные столбцы",{{"Column5", "Бренд"}, {"Column1", "Артикул"}}),
+    #"Переупорядоченные столбцы" = Table.ReorderColumns(#"Переименованные столбцы",{"Бренд", "Артикул", "Column2", "Column3", "Column6", "Column7", "Column8"}),
+    #"Удаленные столбцы1" = Table.RemoveColumns(#"Переупорядоченные столбцы",{"Column2"}),
+    #"Замененное значение" = Table.ReplaceValue(#"Удаленные столбцы1",".",",",Replacer.ReplaceText,{"Column6"}),
+    #"Измененный тип1" = Table.TransformColumnTypes(#"Замененное значение",{{"Column6", type number}}),
+    #"Переименованные столбцы1" = Table.RenameColumns(#"Измененный тип1",{{"Column6", "Цена"}}),
+    #"Строки с примененным фильтром" = Table.SelectRows(#"Переименованные столбцы1", each ([Column7] = "Есть")),
+    #"Переименованные столбцы2" = Table.RenameColumns(#"Строки с примененным фильтром",{{"Column7", "Кол-во"}}),
+    #"Замененное значение1" = Table.ReplaceValue(#"Переименованные столбцы2","Есть","2",Replacer.ReplaceText,{"Кол-во"}),
+    #"Измененный тип2" = Table.TransformColumnTypes(#"Замененное значение1",{{"Кол-во", Int64.Type}}),
+    #"Переименованные столбцы3" = Table.RenameColumns(#"Измененный тип2",{{"Column3", "Название"}}),
+    #"Переупорядоченные столбцы1" = Table.ReorderColumns(#"Переименованные столбцы3",{"Бренд", "Артикул", "Цена", "Название", "Кол-во", "Column8"}),
+    #"Переименованные столбцы4" = Table.RenameColumns(#"Переупорядоченные столбцы1",{{"Column8", "Срок поставки"}}),
+    #"Переупорядоченные столбцы2" = Table.ReorderColumns(#"Переименованные столбцы4",{"Бренд", "Артикул", "Цена", "Кол-во", "Название", "Срок поставки"}),
+    #"Переименованные столбцы5" = Table.RenameColumns(#"Переупорядоченные столбцы2",{{"Срок поставки", "Склад"}}),
+    #"Условный столбец добавлен" = Table.AddColumn(#"Переименованные столбцы5", "Срок поставки", each if Text.Contains([Склад], "Киев") then 1 else if Text.Contains([Склад], "Кременчуг ") then 2 else if Text.Contains([Склад], "Кривой Рог ") then 2 else null),
+    #"Строки с примененным фильтром1" = Table.SelectRows(#"Условный столбец добавлен", each true),
+    #"Удаленные столбцы2" = Table.RemoveColumns(#"Строки с примененным фильтром1",{"Склад"}),
+    #"Переупорядоченные столбцы3" = Table.ReorderColumns(#"Удаленные столбцы2",{"Бренд", "Артикул", "Цена", "Кол-во", "Срок поставки", "Название"})
+in
+    #"Переупорядоченные столбцы3"
+    
+ #UnikTrade
+ let
+    Источник = Csv.Document(File.Contents("C:\Users\v.nevmerzhytskyi\Downloads\pricelist.csv"),[Delimiter=";", Columns=10, Encoding=1251, QuoteStyle=QuoteStyle.None]),
+    #"Повышенные заголовки" = Table.PromoteHeaders(Источник, [PromoteAllScalars=true]),
+    #"Измененный тип" = Table.TransformColumnTypes(#"Повышенные заголовки",{{"Артикул", type text}, {"Наименование", type text}, {"Бренд", type text}, {"Николаевская обл.", type text}, {"Одесская обл", type text}, {"Запорожская обл.", type text}, {"Киевская обл.", type text}, {"Херсонская обл.", type text}, {"Цена", type number}, {"Валюта", type text}}),
+    #"Переупорядоченные столбцы" = Table.ReorderColumns(#"Измененный тип",{"Бренд", "Артикул", "Цена", "Наименование", "Николаевская обл.", "Одесская обл", "Запорожская обл.", "Киевская обл.", "Херсонская обл.", "Валюта"}),
+    #"Удаленные столбцы" = Table.RemoveColumns(#"Переупорядоченные столбцы",{"Валюта"}),
+    #"Замененное значение" = Table.ReplaceValue(#"Удаленные столбцы",">10","10",Replacer.ReplaceText,{"Николаевская обл.", "Одесская обл", "Запорожская обл.", "Киевская обл.", "Херсонская обл."}),
+    #"Измененный тип1" = Table.TransformColumnTypes(#"Замененное значение",{{"Николаевская обл.", Int64.Type}, {"Одесская обл", Int64.Type}, {"Запорожская обл.", Int64.Type}, {"Киевская обл.", Int64.Type}, {"Херсонская обл.", Int64.Type}}),
+    #"Добавлен пользовательский объект" = Table.AddColumn(#"Измененный тип1", "Пользовательская", each [Одесская обл]+[#"Запорожская обл."]+[#"Киевская обл."]+[#"Херсонская обл."]+[#"Николаевская обл."]),
+    #"Переименованные столбцы" = Table.RenameColumns(#"Добавлен пользовательский объект",{{"Пользовательская", "Кол-во"}}),
+    #"Условный столбец добавлен" = Table.AddColumn(#"Переименованные столбцы", "Срок поставки", each if [#"Киевская обл."] >= 1 then 1 else if [#"Николаевская обл."] >= 1 then 2 else if [Одесская обл] >= 1 then 2 else if [#"Запорожская обл."] >= 1 then 2 else if [#"Херсонская обл."] >= 1 then 2 else null),
+    #"Удаленные столбцы1" = Table.RemoveColumns(#"Условный столбец добавлен",{"Николаевская обл.", "Одесская обл", "Запорожская обл.", "Киевская обл.", "Херсонская обл."}),
+    #"Переупорядоченные столбцы1" = Table.ReorderColumns(#"Удаленные столбцы1",{"Бренд", "Артикул", "Цена", "Кол-во", "Срок поставки", "Наименование"}),
+    #"Строки с примененным фильтром" = Table.SelectRows(#"Переупорядоченные столбцы1", each [#"Кол-во"] > 1)
+in
+    #"Строки с примененным фильтром"
+    
+ #Intercars
+ 
+let
+    Источник = Excel.Workbook(File.Contents("C:\Users\v.nevmerzhytskyi\Downloads\intercarsi (1).xlsx"), null, true),
+    list_Sheet = Источник{[Item="list",Kind="Sheet"]}[Data],
+    #"Повышенные заголовки" = Table.PromoteHeaders(list_Sheet, [PromoteAllScalars=true]),
+    #"Измененный тип" = Table.TransformColumnTypes(#"Повышенные заголовки",{{"Код", Int64.Type}, {"Артикул", type text}, {"Бренд", type text}, {"Наименование", type text}, {"Розница с НДС", type number}, {"Закупочная с НДС", type number}, {"Наличие_UR1", Int64.Type}, {"Наличие_UJ0", Int64.Type}, {"Наличие_2дня", Int64.Type}, {"Артикул1", type text}, {"Наличие_UJ7", Int64.Type}, {"Наличие_UJ9", Int64.Type}}),
+    #"Удаленные столбцы" = Table.RemoveColumns(#"Измененный тип",{"Артикул", "Код"}),
+    #"Переименованные столбцы" = Table.RenameColumns(#"Удаленные столбцы",{{"Артикул1", "Артикул"}}),
+    #"Удаленные столбцы1" = Table.RemoveColumns(#"Переименованные столбцы",{"Розница с НДС"}),
+    #"Переупорядоченные столбцы" = Table.ReorderColumns(#"Удаленные столбцы1",{"Бренд", "Артикул", "Закупочная с НДС", "Наименование", "Наличие_UR1", "Наличие_UJ0", "Наличие_2дня", "Наличие_UJ7", "Наличие_UJ9"}),
+    #"Переименованные столбцы1" = Table.RenameColumns(#"Переупорядоченные столбцы",{{"Закупочная с НДС", "Цена"}}),
+    #"Добавлен пользовательский объект" = Table.AddColumn(#"Переименованные столбцы1", "Кол-во", each [Наличие_UR1]+[Наличие_UJ0]+[Наличие_2дня]+[Наличие_UJ7]+[Наличие_UJ9]),
+    #"Условный столбец добавлен" = Table.AddColumn(#"Добавлен пользовательский объект", "Срок поставки", each if [Наличие_UJ7] >= 1 then 1 else if [Наличие_UJ0] >= 1 then 1 else if [Наличие_UJ7] >= 1 then 1 else if [Наличие_UJ9] >= 1 then 1 else if [Наличие_UR1] >= 1 then 1 else if [Наличие_2дня] >= 1 then 2 else null),
+    #"Удаленные столбцы2" = Table.RemoveColumns(#"Условный столбец добавлен",{"Наличие_UR1", "Наличие_UJ0", "Наличие_2дня", "Наличие_UJ7", "Наличие_UJ9"}),
+    #"Переименованные столбцы2" = Table.RenameColumns(#"Удаленные столбцы2",{{"Наименование", "Название"}}),
+    #"Переупорядоченные столбцы1" = Table.ReorderColumns(#"Переименованные столбцы2",{"Бренд", "Артикул", "Цена", "Кол-во", "Срок поставки", "Название"})
+in
+    #"Переупорядоченные столбцы1"
+    
+ #AvtonovaD
+ 
+ let
+    Источник = Excel.Workbook(File.Contents("C:\Users\v.nevmerzhytskyi\Downloads\Состояние_склада_АвтоНова_Д_30_04_2018.xls"), null, true),
+    TDSheet1 = Источник{[Name="TDSheet"]}[Data],
+    #"Измененный тип" = Table.TransformColumnTypes(TDSheet1,{{"Column1", type text}, {"Column2", type text}, {"Column3", type text}, {"Column4", type text}, {"Column5", type text}, {"Column6", type text}, {"Column7", type text}, {"Column8", type text}, {"Column9", type text}, {"Column10", type text}, {"Column11", type text}, {"Column12", type text}, {"Column13", type text}, {"Column14", type text}, {"Column15", type text}, {"Column16", type text}, {"Column17", type text}}),
+    #"Удаленные верхние строки" = Table.Skip(#"Измененный тип",1),
+    #"Повышенные заголовки" = Table.PromoteHeaders(#"Удаленные верхние строки", [PromoteAllScalars=true]),
+    #"Удаленные столбцы1" = Table.RemoveColumns(#"Повышенные заголовки",{"Автомобильный бренд", "Оригинальный номер - Идентификатор"}),
+    #"Переименованные столбцы" = Table.RenameColumns(#"Удаленные столбцы1",{{"Каталожный номер производителя", "Артикул"}, {"Производитель", "Бренд"}, {"Наименование", "Название"}, {"Наличие, шт", "Кол-во"}}),
+    #"Удаленные столбцы" = Table.RemoveColumns(#"Переименованные столбцы",{"Цена Розница", "Column9", "Column10", "Column11", "Column12", "Column13", "Column14", "Column15", "Column16", "Column17"}),
+    #"Измененный тип1" = Table.TransformColumnTypes(#"Удаленные столбцы",{{"Кол-во", Int64.Type}, {"Цена", type number}}),
+    #"Строки с примененным фильтром" = Table.SelectRows(#"Измененный тип1", each [#"Кол-во"] >= 2),
+    #"Вставлено: знак" = Table.AddColumn(#"Строки с примененным фильтром", "Срок поставки", each Number.Sign([#"Кол-во"]), Int64.Type),
+    #"Переупорядоченные столбцы" = Table.ReorderColumns(#"Вставлено: знак",{"Бренд", "Артикул", "Цена", "Кол-во", "Срок поставки", "Название"})
+in
+    #"Переупорядоченные столбцы"
