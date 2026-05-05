@@ -7,7 +7,7 @@
 import sys
 import os
 
-def transcribe(audio_path: str, model_size: str = "medium") -> str:
+def transcribe(audio_path: str, model_size: str = "large") -> str:
     try:
         import whisper
     except ImportError:
@@ -39,7 +39,7 @@ def main():
         sys.exit(1)
 
     audio_path = sys.argv[1]
-    model_size = sys.argv[2] if len(sys.argv) > 2 else "medium"
+    model_size = sys.argv[2] if len(sys.argv) > 2 else "large"
 
     if not os.path.exists(audio_path):
         print(f"Помилка: файл не знайдено: {audio_path}")
